@@ -3,14 +3,14 @@
   <modelVersion>4.0.0</modelVersion>
  <parent>
  <groupId>easyRestful.all</groupId>
- <version>1.0</version>
+ <version>0.1</version>
  <artifactId>easyRestful-all</artifactId>
  <relativePath>../pom.xml</relativePath>
 </parent>
   <groupId>easy-restful</groupId>
   <artifactId>easy-restful</artifactId>
   <packaging>jar</packaging>
-  <version>1.0</version>
+  <version>0.1</version>
   <name>easy-restful</name>
 <dependencies>
 <dependency>
