@@ -10,7 +10,7 @@
   <groupId>easyRestful.demo</groupId>
   <artifactId>easyRestful-demo</artifactId>
   <packaging>war</packaging>
-  <version>1.0</version>
+  <version>0.1</version>
   <name>easyRestful-demo</name>
 <dependencies>
 <dependency>
