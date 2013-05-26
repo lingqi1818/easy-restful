@@ -12,9 +12,25 @@
     <module>easy-restful</module>
 	<module>demo</module>
   </modules>
+
+ <repositories>
+ <repository>
+     <id>opensesame</id>
+     <name>Alibaba OpenSource Repsoitory</name>
+     <url>http://code.alibabatech.com/mvn/releases/</url>
+     <snapshots>
+     <enabled>false</enabled>
+     </snapshots>
+ </repository>
+ </repositories>
   
   <dependencyManagement>
 	<dependencies>
+    <dependency>
+    <groupId>com.alibaba</groupId>
+    <artifactId>fastjson</artifactId>
+    <version>1.1.23</version>
+    </dependency>
 	<dependency>
 	<groupId>org.eclipse.jetty</groupId>
 	<artifactId>jetty-server</artifactId>

@@ -1,6 +1,9 @@
 package org.codeanywhere.easyRestful.demo.action.hello;
+
 import org.codeanywhere.easyRestful.base.Action;
 import org.codeanywhere.easyRestful.base.RequestContext;
+import org.codeanywhere.easyRestful.base.annotation.Json;
+import org.codeanywhere.easyRestful.base.annotation.Jsonp;
 import org.codeanywhere.easyRestful.base.annotation.Request;
 import org.codeanywhere.easyRestful.base.annotation.SpringBean;
 import org.codeanywhere.easyRestful.demo.service.HelloService;
@@ -34,6 +37,44 @@ public class Hello implements Action {
         System.out.println(s2);
         System.out.println(s3);
         System.out.println(s4);
+    }
+
+    @Json
+    public JsonObject testJson(String s1, String s2, String s3, String s4) {
+        JsonObject o = new JsonObject();
+        o.setA("1");
+        o.setB("2");
+        return o;
+    }
+
+    @Jsonp(callbackMethodName = "callback")
+    public JsonObject testJsonp(String s1, String s2, String s3, String s4) {
+        JsonObject o = new JsonObject();
+        o.setA("1");
+        o.setB("2");
+        return o;
+    }
+
+    private class JsonObject {
+        private String a;
+        private String b;
+
+        public String getA() {
+            return a;
+        }
+
+        public void setA(String a) {
+            this.a = a;
+        }
+
+        public String getB() {
+            return b;
+        }
+
+        public void setB(String b) {
+            this.b = b;
+        }
+
     }
 
 }
