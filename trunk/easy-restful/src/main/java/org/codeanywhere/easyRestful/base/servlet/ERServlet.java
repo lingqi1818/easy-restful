@@ -1,5 +1,6 @@
 package org.codeanywhere.easyRestful.base.servlet;
 
+import java.io.BufferedWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -7,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.servlet.ServletConfig;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -15,10 +15,14 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;
 import org.apache.velocity.Template;
 import org.codeanywhere.easyRestful.base.VelocityContext;
+import org.codeanywhere.easyRestful.base.annotation.Json;
+import org.codeanywhere.easyRestful.base.annotation.Jsonp;
 import org.codeanywhere.easyRestful.base.annotation.Request;
 import org.codeanywhere.easyRestful.base.annotation.SpringBean;
 import org.codeanywhere.easyRestful.base.constant.ERWebConstant;
 import org.codeanywhere.easyRestful.base.context.ERContext;
+
+import com.alibaba.fastjson.JSON;
 
 /**
  * 网站mvc请求总入口
@@ -32,11 +36,12 @@ public class ERServlet extends HttpServlet {
     private static Map<String, Object>      actionMap        = new ConcurrentHashMap<String, Object>();
     private static Map<String, Method>      methodMap        = new ConcurrentHashMap<String, Method>();
     private static Map<String, List<Field>> fieldMap         = new ConcurrentHashMap<String, List<Field>>();
+    private static Map<String, MethodType>  methodTypeMap    = new ConcurrentHashMap<String, MethodType>();
+    private static Map<String, String>      jsonpMethodMap   = new ConcurrentHashMap<String, String>();
     /**
      * 
      */
     private static final long               serialVersionUID = 1L;
-    private ServletConfig                   config;
 
     //TODO 需要添加白名单功能
     public void doGet(HttpServletRequest request, HttpServletResponse response) {
@@ -48,8 +53,23 @@ public class ERServlet extends HttpServlet {
             Object actionObj = getAction(exeAction);
             setRequestContext(actionObj, exeAction, new VelocityContext(vc, request, response));
             Method method = getActionMethod(exeAction, actionObj);
-            invokeMethod(method, actionObj, exeAction);
-            mergeTemplate(exeAction, vc, response);
+            Object result = invokeMethod(method, actionObj, exeAction);
+            BufferedWriter bw = new BufferedWriter(response.getWriter());
+            if (methodTypeMap.get(exeAction.getMethodName()) == MethodType.JSON) {
+                String s = JSON.toJSONString(result);
+                bw.write(s);
+                bw.flush();
+            } else if (methodTypeMap.get(exeAction.getMethodName()) == MethodType.JSONP) {
+                StringBuffer sbf = new StringBuffer();
+                sbf.append(jsonpMethodMap.get(exeAction.getMethodName()));
+                sbf.append("=(");
+                sbf.append(JSON.toJSONString(result));
+                sbf.append(");");
+                bw.write(sbf.toString());
+                bw.flush();
+            } else {
+                mergeTemplate(exeAction, vc, response);
+            }
         } catch (Exception e) {
             log.error(e);
         }
@@ -94,19 +114,20 @@ public class ERServlet extends HttpServlet {
         }
     }
 
-    private void invokeMethod(Method method, Object actionObj, ExecuteAction exeAction) {
+    private Object invokeMethod(Method method, Object actionObj, ExecuteAction exeAction) {
         try {
-            method.invoke(actionObj, exeAction.getParams());
+            return method.invoke(actionObj, exeAction.getParams());
         } catch (Exception e) {
             log.error(e);
         }
+        return null;
     }
 
     private Method getActionMethod(ExecuteAction exeAction, Object actionObj) {
         if (actionObj == null) {
             return null;
         }
-        String methodName = exeAction.getActionClzz() + ERWebConstant.METHOD_SPLIT_SYMBOL + exeAction.getMethod();
+        String methodName = exeAction.getMethodName();
         Method method = methodMap.get(methodName);
         if (method == null) {
             Class<?>[] typeArray;
@@ -136,6 +157,18 @@ public class ERServlet extends HttpServlet {
         }
         if (method == null)
             log.error("no method exists,class:" + exeAction.getActionClzz() + " method:" + exeAction.getMethod());
+        else {
+            if (methodTypeMap.get(methodName) == null) {
+                if (method.getAnnotation(Json.class) != null) {
+                    methodTypeMap.put(methodName, MethodType.JSON);
+                } else if (method.getAnnotation(Jsonp.class) != null) {
+                    methodTypeMap.put(methodName, MethodType.JSONP);
+                    jsonpMethodMap.put(methodName, method.getAnnotation(Jsonp.class).callbackMethodName());
+                } else {
+                    methodTypeMap.put(methodName, MethodType.GENERAL);
+                }
+            }
+        }
         return method;
     }
 
@@ -307,6 +340,7 @@ public class ERServlet extends HttpServlet {
             ea.setTemplate(actionName + ERWebConstant.FILE_PATH_SPLIT_SYMBOL + ea.getMethod());
         }
         ea.setTemplate(ea.getTemplate().toLowerCase() + ERWebConstant.VELOCITY_SUFFIX);
+        ea.setMethodName(ea.getActionClzz() + ERWebConstant.METHOD_SPLIT_SYMBOL + ea.getMethod());
         return ea;
     }
 
@@ -343,6 +377,15 @@ public class ERServlet extends HttpServlet {
         private String[] params;      // 方法传入参数
         private String   template;    // 模板名称
         private String   templatePath; // 模板路径
+        private String   methodName;  //方法名称
+
+        public String getMethodName() {
+            return methodName;
+        }
+
+        public void setMethodName(String methodName) {
+            this.methodName = methodName;
+        }
 
         public String getTemplate() {
             return template;
